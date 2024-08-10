@@ -1,10 +1,11 @@
 from flask import Flask, request, render_template, jsonify
-import pickle
-import numpy as np
+import joblib
+import pandas as pd
 
 app = Flask(__name__)
 
-model = pickle.load(open('model.pkl', 'rb'))
+# Load your trained model
+model = joblib.load('model.pkl')
 
 @app.route('/')
 def index():
@@ -14,30 +15,44 @@ def index():
 def predict():
     try:
         data = request.json
-        features = [
-            data['age'],
-            data['gender'],
-            data['ethnicity'],
-            data['parental_education'],
-            data['study_time_weekly'],
-            data['absences'],
-            data['tutoring'],
-            data['parental_support'],
-            data['extracurricular'],
-            data['sports'],
-            data['music'],
-            data['volunteering']
+        print("Received data:", data)  # For debugging
+
+        # Define the feature names used during training (excluding StudentID, GPA, and GradeClass)
+        feature_names = [
+            'Age', 'Gender', 'Ethnicity', 'ParentalEducation', 'StudyTimeWeekly',
+            'Absences', 'Tutoring', 'ParentalSupport', 'Extracurricular', 'Sports',
+            'Music', 'Volunteering'
         ]
-        
-        features_array = np.array([features])
-        prediction = model.predict(features_array)
-        grade_classes = ['A', 'B', 'C', 'D', 'F']
-        result = grade_classes[int(prediction[0])]
-        
-        return jsonify({'grade_class': result})
-    
+
+        # Extract and prepare the features for prediction
+        input_features = pd.DataFrame([{
+            'Age': data.get('Age'),
+            'Gender': data.get('Gender'),
+            'Ethnicity': data.get('Ethnicity'),
+            'ParentalEducation': data.get('ParentalEducation'),
+            'StudyTimeWeekly': data.get('StudyTimeWeekly'),
+            'Absences': data.get('Absences'),
+            'Tutoring': data.get('Tutoring'),
+            'ParentalSupport': data.get('ParentalSupport'),
+            'Extracurricular': data.get('Extracurricular'),
+            'Sports': data.get('Sports'),
+            'Music': data.get('Music'),
+            'Volunteering': data.get('Volunteering')
+        }], columns=feature_names)
+
+        # Make prediction
+        if hasattr(model, 'predict'):
+            prediction = model.predict(input_features)
+            grade_class = ['A', 'B', 'C', 'D', 'F'][prediction[0]]
+            print(prediction)
+            return jsonify({'GradeClass': grade_class})
+        else:
+            return jsonify({'error': 'Model does not have a predict method'}), 500
+
     except Exception as e:
-        return jsonify({'error': str(e)})
+        # Log the exception for debugging
+        print(f'Exception occurred: {e}')
+        return jsonify({'error': str(e)}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)
