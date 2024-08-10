@@ -1,10 +1,11 @@
 from flask import Flask, request, render_template, jsonify
-import joblib
+import pickle
 import pandas as pd
 
 app = Flask(__name__)
 
-model = joblib.load('model.pkl')
+with open('model.pkl', 'rb') as file:
+    model = pickle.load(file)
 
 @app.route('/')
 def index():
@@ -36,11 +37,11 @@ def predict():
             'Music': data.get('Music'),
             'Volunteering': data.get('Volunteering')
         }], columns=feature_names)
-        
+                
         print("Array data:", input_features) 
 
         if hasattr(model, 'predict'):
-            prediction = ''
+            prediction = 0
             prediction = model.predict(input_features)
             grade_class = ['A (GPA >= 3.5)', 'B (3.0 <= GPA < 3.5)', 'C (2.5 <= GPA < 3.0)', 'D (2.0 <= GPA < 2.5)', 'F (GPA < 2.0)'][prediction[0]]
             print(prediction)
