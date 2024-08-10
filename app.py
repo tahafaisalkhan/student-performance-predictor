@@ -4,7 +4,6 @@ import pandas as pd
 
 app = Flask(__name__)
 
-# Load your trained model
 model = joblib.load('model.pkl')
 
 @app.route('/')
@@ -15,16 +14,14 @@ def index():
 def predict():
     try:
         data = request.json
-        print("Received data:", data)  # For debugging
+        print("Received data:", data) 
 
-        # Define the feature names used during training (excluding StudentID, GPA, and GradeClass)
         feature_names = [
             'Age', 'Gender', 'Ethnicity', 'ParentalEducation', 'StudyTimeWeekly',
             'Absences', 'Tutoring', 'ParentalSupport', 'Extracurricular', 'Sports',
             'Music', 'Volunteering'
         ]
 
-        # Extract and prepare the features for prediction
         input_features = pd.DataFrame([{
             'Age': data.get('Age'),
             'Gender': data.get('Gender'),
@@ -39,18 +36,19 @@ def predict():
             'Music': data.get('Music'),
             'Volunteering': data.get('Volunteering')
         }], columns=feature_names)
+        
+        print("Array data:", input_features) 
 
-        # Make prediction
         if hasattr(model, 'predict'):
+            prediction = ''
             prediction = model.predict(input_features)
-            grade_class = ['A', 'B', 'C', 'D', 'F'][prediction[0]]
+            grade_class = ['A (GPA >= 3.5)', 'B (3.0 <= GPA < 3.5)', 'C (2.5 <= GPA < 3.0)', 'D (2.0 <= GPA < 2.5)', 'F (GPA < 2.0)'][prediction[0]]
             print(prediction)
             return jsonify({'GradeClass': grade_class})
         else:
             return jsonify({'error': 'Model does not have a predict method'}), 500
 
     except Exception as e:
-        # Log the exception for debugging
         print(f'Exception occurred: {e}')
         return jsonify({'error': str(e)}), 400
 
